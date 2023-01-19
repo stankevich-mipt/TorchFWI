@@ -76,9 +76,9 @@ def main(args):
 	assert os.path.isdir(args.data_path)
 	assert os.path.isdir(os.path.join(args.data_path, "model"))
 
-	output_path = pathlib.Path(args.data_path).mkdir(parents=True, exist=True)
-	data_dir    = (output_path / 'data_torchfwi').mkdir(parents=True, exist=True)
-	model_dir   = (output_path / 'data_torchfwi').mkdir(parents=True, exist=True)
+	output_path = pathlib.Path(args.data_path).mkdir(parents=True, exist_ok=True)
+	data_dir    = (output_path / 'data_torchfwi').mkdir(parents=True, exist_ok=True)
+	model_dir   = (output_path / 'data_torchfwi').mkdir(parents=True, exist_ok=True)
 
 	for i, m in enumerate(sorted(os.listdirt(model_dir), key=lambda x: int(x.split(".")[0][5:]))):
 
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 	import argparse
 
 	parser = argparse.ArgumentParser(description='Dataset Generation')
-	parser.add_argument('-p', '--data_path', help='path to old dataset', type=str)
+	parser.add_argument('-p', '--data_path', help='path to old dataset', type=str, required=True)
 	
 	args = parser.parse_args()
 
