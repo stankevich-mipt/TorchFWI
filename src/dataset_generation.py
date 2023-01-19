@@ -73,18 +73,16 @@ Shot_ids = torch.tensor([len(ind_src_x) // 2], dtype=torch.int32) # calculate on
 
 def main(args):
 
-	print(args)
-	print('torch version: ', torch.__version__)
-	print('torchvision version: ', torchvision.__version__)
+	assert os.path.isdir(args.data_path)
+	assert os.path.isdir(os.path.join(args.data_path, "model"))
 
-	output_path = pathlib.Path(args.output_path).mkdir(parents=True, exist=True)
-	anno        = args.anno_path
+	output_path = pathlib.Path(args.data_path).mkdir(parents=True, exist=True)
+	data_dir    = (output_path / 'data_torchfwi').mkdir(parents=True, exist=True)
+	model_dir   = (output_path / 'data_torchfwi').mkdir(parents=True, exist=True)
 
-	with open(anno, 'r') as f: models = f.readlines()
+	for i, m in enumerate(sorted(os.listdirt(model_dir), key=lambda x: int(x.split(".")[0][5:]))):
 
-	for i, m in enumerate(models):
-
-		model = cv2.resize(np.load(m), (nz_orig, nx_orig))
+		model = cv2.resize(np.load(os.path.join(model_dir, m)), (nz_orig, nx_orig))
 
 		# numerical scheme used in cuda engine solves elastic equations
 		# set cs = 0. for each grid point to work with elasticity
@@ -110,9 +108,8 @@ if __name__ == '__main__':
 	import argparse
 
 	parser = argparse.ArgumentParser(description='Dataset Generation')
-	parser.add_argument('-ap', '--anno_path', help='annotation file location', type=str)
-	parser.add_argument('-o' , '--output_path', help='directory to store dataset', type=str)
-
+	parser.add_argument('-p', '--data_path', help='path to old dataset', type=str)
+	
 	args = parser.parse_args()
 
 	main(args)
