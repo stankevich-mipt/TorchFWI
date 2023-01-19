@@ -55,7 +55,7 @@ ind_rec_z = 2*np.ones(ind_rec_x.shape[0]).astype(int)
 
 para_fname    = 'para_file.json'
 survey_fname  = 'survey_file.json'
-data_dir_name = pathlib.Path('Data').mkdir(parents=True, exist=True)
+data_dir_name = 'Data'
 
 ft.paraGen(nz_pad, nx_pad, dz, dx, nSteps, dt, f0_vec, nPml, nPad, para_fname, survey_fname, data_dir_name)
 ft.surveyGen(ind_src_z, ind_src_x, ind_rec_z, ind_rec_x, survey_fname)
