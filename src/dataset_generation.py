@@ -13,6 +13,9 @@ import fwi_utils as ft
 from scipy import optimize
 from obj_wrapper import PyTorchObjective
 
+# current generator supports only single GPU
+
+ngpu = 1
 
 # ========== parameters ============
 
@@ -31,7 +34,7 @@ f0_vec = 4.5
 
 # total integration time is 5 seconds
 
-dt     = 0.0025
+dt = 0.0025
 nSteps = 2000
 
 # number of CPML nodes
@@ -53,7 +56,7 @@ ind_rec_z = 2*np.ones(ind_rec_x.shape[0]).astype(int)
 
 # generate corresponding .json files with source/receiver geometries
 
-para_fname    = 'para_file.json'
+para_fname= 'para_file.json'
 survey_fname  = 'survey_file.json'
 data_dir_name = 'Data'
 
@@ -76,26 +79,38 @@ def main(args):
 	assert os.path.isdir(args.data_path)
 	assert os.path.isdir(os.path.join(args.data_path, "model"))
 
-	output_path = pathlib.Path(args.data_path).mkdir(parents=True, exist_ok=True)
-	data_dir    = (output_path / 'data_torchfwi').mkdir(parents=True, exist_ok=True)
-	model_dir   = (output_path / 'data_torchfwi').mkdir(parents=True, exist_ok=True)
+	old_model_dir = os.path.join(args.data_path, "model")
 
-	for i, m in enumerate(sorted(os.listdirt(model_dir), key=lambda x: int(x.split(".")[0][5:]))):
+	print(old_model_dir)
 
-		model = cv2.resize(np.load(os.path.join(model_dir, m)), (nz_orig, nx_orig))
+	output_path = pathlib.Path(args.data_path)
+	output_path.mkdir(parents=True, exist_ok=True)
+	data_dir = (output_path / 'data_torchfwi')
+	data_dir.mkdir(parents=True, exist_ok=True)
+	model_dir = (output_path / 'model_torchfwi')
+	model_dir.mkdir(parents=True, exist_ok=True)
+
+	for i, m in enumerate(sorted(os.listdir(old_model_dir))): #, key=lambda x: int(x.split(".")[0][5:]))):
+
+		model = np.load(os.path.join(old_model_dir, m))[0]
 
 		# numerical scheme used in cuda engine solves elastic equations
 		# set cs = 0. for each grid point to work with elasticity
 
-		cp_true  = np.copy(model)
-		cs_true  = np.zeros_like(cp_true)
-		rho_true = np.ones_like(cp_true) * 2500. # set constant density
+		cp_true  = torch.from_numpy(model)
+		cs_true  = torch.zeros_like(cp_true)
+		den_true = torch.ones_like(cp_true) * 2500. # set constant density
 
 		# mirror padding for CPML is implemented in fwi_utils module
 
-		cp_true_pad, cs_true_pad, rho_true_pad = ft.padding(cp_true, cs_true, rho_true, nz_orig, nx_orig, nPml, nPad)
-		fwi_obscalc = FWI_obscalc(th_cp_pad, th_cs_pad, th_den_pad, th_Stf, para_fname)
+		cp_true_pad, cs_true_pad, den_true_pad = ft.padding(cp_true, cs_true, den_true, model.shape[0], model.shape[1], nz_orig, nx_orig, nPml, nPad)
+		fwi_obscalc = FWI_obscalc(cp_true_pad, cs_true_pad, den_true_pad, th_Stf, para_fname)
 		fwi_obscalc(Shot_ids, ngpu=ngpu)
+
+		data = np.fromfile('Data/Shot24.bin', dtype=np.float32).reshape((379, 2000))
+
+		np.save(model_dir / f'model{i}', cp_true_pad[nPml:-nPml-nPad, nPml:-nPml].data.numpy())
+		np.save(data_dir  / f'data{i}', data)
 
 		break
 
